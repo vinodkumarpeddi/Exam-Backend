@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 const allowedOrigins = [
-  'https://exam-seating-cgy3.vercel.app', // your frontend URL
+  'https://exam-seating-management.vercel.app', // your frontend URL
 ];
 
 app.use(cors({
