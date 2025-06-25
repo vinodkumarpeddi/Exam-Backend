@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: ['https://exam-seating-zutu.vercel.app/', 'http://localhost:3000', 'http://localhost:5173'],
+  origin: ['https://exam-seating-cgy3.vercel.app/', 'http://localhost:3000', 'http://localhost:5173'],
   credentials: true
 }));
 app.use(express.json());
