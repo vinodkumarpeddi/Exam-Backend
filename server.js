@@ -18,9 +18,19 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+const allowedOrigins = [
+  'https://exam-seating-cgy3.vercel.app', // your frontend URL
+];
+
 app.use(cors({
-  origin: ['https://exam-seating-cgy3.vercel.app/', 'http://localhost:3000', 'http://localhost:5173'],
-  credentials: true
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // if you're using cookies or auth headers
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
