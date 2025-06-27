@@ -48,7 +48,7 @@ export const login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 3600000 // 1 hour
+      maxAge: 3600000 
     });
 
     res.json({
@@ -87,11 +87,11 @@ export const addUser = async (req, res) => {
     res.json({ success: true, msg: 'User added successfully' });
   } catch (err) {
     if (err.code === 11000) {
-      // Check which field caused duplication
+      
       if (err.keyValue && err.keyValue.userId) {
         return res.status(400).json({ success: false, msg: 'User ID already exists' });
       }
-      // Add checks for other unique fields if needed, e.g. email
+     
       return res.status(400).json({ success: false, msg: 'Duplicate value for a unique field' });
     }
 
@@ -184,7 +184,7 @@ export const addMultipleUsers = async (req, res) => {
     for (const user of users) {
       let { role, userId, name, password } = user;
 
-      role = role?.toLowerCase(); // normalize
+      role = role?.toLowerCase(); 
       if (!role || !userId || !name || !password) {
         results.push({ userId: userId || 'N/A', status: 'Failed', msg: 'Missing required fields' });
         continue;

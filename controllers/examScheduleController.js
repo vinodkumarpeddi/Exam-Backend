@@ -24,11 +24,11 @@ export const getExamScheduleById = async (req, res) => {
 
 export const createExamSchedule = async (req, res) => {
    try {
-    // Adjust the incoming date to ensure it's stored correctly
+    
     const examData = req.body;
     if (examData.date) {
       const parsedDate = new Date(examData.date);
-      // Adjust for timezone offset to get the correct UTC date
+     
       examData.date = new Date(parsedDate.getTime() - parsedDate.getTimezoneOffset() * 60000);
     }
     
@@ -80,44 +80,44 @@ export const bulkCreateExamSchedules = async (req, res) => {
   try {
     let exams = req.body;
 
-    // Validate input is an array
+    
     if (!Array.isArray(exams)) {
       return res.status(400).json({ message: 'Input should be an array of exam schedules' });
     }
 
-    // Process and validate each exam schedule
+    
     const processedExams = exams.map((exam, index) => {
-      // Validate required fields
+     
       if (!exam.date || !exam.time || !exam.subject || !exam.subjectCode || !exam.department || !exam.semester) {
         throw new Error(`Row ${index + 1}: Missing required fields`);
       }
 
-      // Parse and normalize the date
+     
       let parsedDate;
       
       try {
-        // Handle ISO format (YYYY-MM-DD) explicitly
+       
         if (typeof exam.date === 'string' && exam.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
           parsedDate = new Date(exam.date + 'T00:00:00.000Z');
         } 
-        // Handle Excel numeric dates (serial numbers)
+        
         else if (typeof exam.date === 'number') {
           const excelEpoch = new Date(1899, 11, 30); // Excel's epoch is 1900-01-00 (sort of)
           parsedDate = new Date(excelEpoch.getTime() + (exam.date - 1) * 86400000);
         }
-        // Handle other string formats
+       
         else {
           parsedDate = new Date(exam.date);
-          // If the date is invalid, try parsing with date-fns
+         
           if (isNaN(parsedDate.getTime())) {
             const formats = [
-              'dd-MM-yyyy',    // 23-06-2025
-              'MM/dd/yyyy',    // 06/23/2025
-              'yyyy/MM/dd',    // 2025/06/23
-              'dd MMM yyyy',   // 23 Jun 2025
-              'MMM dd, yyyy',  // Jun 23, 2025
-              'dd-MM-yy',      // 23-06-25
-              'MM/dd/yy'       // 06/23/25
+              'dd-MM-yyyy',    
+              'MM/dd/yyyy',    
+              'yyyy/MM/dd',    
+              'dd MMM yyyy',  
+              'MMM dd, yyyy', 
+              'dd-MM-yy',      
+              'MM/dd/yy'      
             ];
             
             for (const format of formats) {
@@ -131,28 +131,27 @@ export const bulkCreateExamSchedules = async (req, res) => {
           }
         }
 
-        // If still invalid, throw error
+        
         if (!parsedDate || isNaN(parsedDate.getTime())) {
           throw new Error(`Invalid date format`);
         }
 
-        // Normalize to UTC by removing timezone offset
+        
         parsedDate = new Date(parsedDate.getTime() - parsedDate.getTimezoneOffset() * 60000);
       } catch (e) {
         throw new Error(`Row ${index + 1}: Invalid date format - ${exam.date}`);
       }
 
-      // Validate time
+     
       if (!['FN', 'AN'].includes(exam.time.toUpperCase())) {
         throw new Error(`Row ${index + 1}: Time must be either 'FN' or 'AN'`);
       }
 
-      // Validate semester
       if (!['1', '2', '3', '4', '5', '6', '7', '8'].includes(exam.semester.toString())) {
         throw new Error(`Row ${index + 1}: Invalid semester - must be between 1-8`);
       }
 
-      // Standardize the data
+    
       return {
         date: parsedDate,
         time: exam.time.toUpperCase(),
@@ -167,7 +166,7 @@ export const bulkCreateExamSchedules = async (req, res) => {
       };
     });
 
-    // Create unique keys for lookup
+    
     const uniqueKeys = processedExams.map(e => ({
       date: e.date.toISOString().split('T')[0], // Compare by date only (UTC)
       time: e.time,
@@ -176,7 +175,7 @@ export const bulkCreateExamSchedules = async (req, res) => {
       semester: e.semester
     }));
 
-    // Find existing exams (active or inactive)
+   
     const existingExams = await ExamSchedule.find({
       $or: uniqueKeys.map(key => ({
         date: { 
@@ -190,7 +189,7 @@ export const bulkCreateExamSchedules = async (req, res) => {
       }))
     });
 
-    // Map existing exams by key for quick access
+    
     const existingMap = new Map();
     existingExams.forEach(e => {
       const dateStr = e.date.toISOString().split('T')[0];
@@ -209,14 +208,14 @@ export const bulkCreateExamSchedules = async (req, res) => {
 
       if (existing) {
         if (!existing.isActive) {
-          // Reactivate and update
+          
           existing.isActive = true;
           Object.assign(existing, exam);
           toReactivate.push(existing);
         } else {
-          // Update existing active record
+         
           const updateData = { ...exam };
-          delete updateData._id; // Remove _id if present
+          delete updateData._id; 
           toUpdate.push({
             updateOne: {
               filter: { _id: existing._id },
@@ -225,27 +224,26 @@ export const bulkCreateExamSchedules = async (req, res) => {
           });
         }
       } else {
-        // New exam schedule to insert
+        
         toInsert.push(exam);
       }
     }
 
-    // Execute all operations in a transaction
-    const session = await ExamSchedule.startSession();
+     const session = await ExamSchedule.startSession();
     session.startTransaction();
 
     try {
-      // Bulk insert new exams
+      
       let insertedExams = [];
       if (toInsert.length > 0) {
         insertedExams = await ExamSchedule.insertMany(toInsert, { session });
       }
 
-      // Bulk update reactivated exams
+      
       const reactivatePromises = toReactivate.map(e => e.save({ session }));
       const reactivatedExams = await Promise.all(reactivatePromises);
 
-      // Bulk update existing exams
+      
       let updatedCount = 0;
       if (toUpdate.length > 0) {
         const updateResult = await ExamSchedule.bulkWrite(toUpdate, { session });

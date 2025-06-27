@@ -146,195 +146,122 @@ export const deleteStudent = async (req, res) => {
 export const bulkCreateStudents = async (req, res) => {
   try {
     console.log('=== BULK CREATE STUDENTS START ===');
-    console.log('Request body length:', req.body.length);
-    console.log('Sample data:', req.body.slice(0, 3));
-    
+
     const studentsData = req.body;
 
-    if (!Array.isArray(studentsData)) {
-      return res.status(400).json({ message: 'Input must be an array' });
+    if (!Array.isArray(studentsData) || studentsData.length === 0) {
+      return res.status(400).json({ message: 'Input must be a non-empty array' });
     }
 
-    if (studentsData.length === 0) {
-      return res.status(400).json({ message: 'Array cannot be empty' });
-    }
-
-    // Process and validate each student record
     const processedStudents = [];
     const errors = [];
 
     for (let i = 0; i < studentsData.length; i++) {
+      const s = studentsData[i];
+
       try {
-        const studentData = studentsData[i];
-        
-        // Clean and validate the data
-        const processedStudent = {
-          name: (studentData.name || '').toString().trim(),
-          regNo: (studentData.regNo || '').toString().trim().toLowerCase(),
-          department: (studentData.department || '').toString().trim().toUpperCase(),
-          semester: (studentData.semester || '').toString().trim(),
-          email: (studentData.email || '').toString().trim().toLowerCase(),
-          examDate: studentData.examDate ? new Date(studentData.examDate) : undefined,
-          subject: (studentData.subject || '').toString().trim(),
-          subjectCode: (studentData.subjectCode || '').toString().trim().toUpperCase(),
-          type: (studentData.type || 'regular').toString().toLowerCase(),
+        const examDate = s.examDate
+          ? new Date(Date.UTC(
+              new Date(s.examDate).getUTCFullYear(),
+              new Date(s.examDate).getUTCMonth(),
+              new Date(s.examDate).getUTCDate()
+            ))
+          : undefined;
+
+
+        const student = {
+          name: (s.name || '').toString().trim(),
+          regNo: (s.regNo || '').toString().trim().toLowerCase(),
+          department: (s.department || '').toString().trim().toUpperCase(),
+          semester: (s.semester || '').toString().trim(),
+          email: (s.email || '').toString().trim().toLowerCase(),
+          examDate,
+          subject: (s.subject || '').toString().trim(),
+          subjectCode: (s.subjectCode || '').toString().trim().toUpperCase(),
+          type: (s.type || 'regular').toString().trim().toLowerCase(),
           isActive: true
         };
 
         // Validate required fields
-        if (!processedStudent.name || !processedStudent.regNo || !processedStudent.department || !processedStudent.semester) {
-          errors.push({
-            index: i,
-            error: 'Missing required fields (name, regNo, department, semester)',
-            data: studentData
-          });
+        if (!student.name || !student.regNo || !student.department || !student.semester) {
+          errors.push({ index: i, error: 'Missing required fields', data: s });
           continue;
         }
 
-        // Validate email format if provided
-        if (processedStudent.email && !processedStudent.email.includes('@')) {
-          errors.push({
-            index: i,
-            error: 'Invalid email format',
-            data: studentData
-          });
+        // Validate email format
+        if (student.email && !student.email.includes('@')) {
+          errors.push({ index: i, error: 'Invalid email format', data: s });
           continue;
         }
 
-        processedStudents.push(processedStudent);
-      } catch (error) {
-        console.error(`Error processing student at index ${i}:`, error);
-        errors.push({
-          index: i,
-          error: error.message,
-          data: studentsData[i]
-        });
+        processedStudents.push(student);
+      } catch (err) {
+        errors.push({ index: i, error: err.message, data: s });
       }
     }
 
-    console.log(`Processed ${processedStudents.length} valid students out of ${studentsData.length}`);
-    console.log(`Found ${errors.length} errors`);
-
-    if (processedStudents.length === 0) {
-      return res.status(400).json({ 
-        message: 'No valid student records found',
-        errors: errors
-      });
-    }
-
-    // Remove duplicates based on regNo
-    const uniqueStudents = [];
-    const seenRegNos = new Set();
-    const duplicates = [];
-
+    // Deduplicate by regNo
+    const seen = new Map();
     for (const student of processedStudents) {
-      if (seenRegNos.has(student.regNo)) {
-        duplicates.push(student);
-      } else {
-        seenRegNos.add(student.regNo);
-        uniqueStudents.push(student);
+      if (!seen.has(student.regNo)) {
+        seen.set(student.regNo, student);
       }
     }
 
-    console.log(`After removing duplicates: ${uniqueStudents.length} unique students`);
-    if (duplicates.length > 0) {
-      console.log(`Found ${duplicates.length} duplicate registration numbers`);
-    }
+    const uniqueStudents = Array.from(seen.values());
 
-    // Insert students in batches to handle potential duplicates gracefully
-    const batchSize = 100;
-    const savedStudents = [];
-    const insertErrors = [];
-
-    for (let i = 0; i < uniqueStudents.length; i += batchSize) {
-      const batch = uniqueStudents.slice(i, i + batchSize);
-      
-      try {
-        // Try to insert each student individually to handle duplicates
-        for (const studentData of batch) {
-          try {
-            // Check if student already exists
-            const existingStudent = await Student.findOne({ regNo: studentData.regNo });
-            
-            if (existingStudent) {
-              // Update existing student instead of creating duplicate
-              const updatedStudent = await Student.findByIdAndUpdate(
-                existingStudent._id,
-                studentData,
-                { new: true, runValidators: true }
-              );
-              savedStudents.push(updatedStudent);
-              console.log(`Updated existing student: ${studentData.regNo}`);
-            } else {
-              // Create new student
-              const newStudent = new Student(studentData);
-              const savedStudent = await newStudent.save();
-              savedStudents.push(savedStudent);
-              console.log(`Created new student: ${studentData.regNo}`);
-            }
-          } catch (error) {
-            console.error(`Error saving student ${studentData.regNo}:`, error.message);
-            insertErrors.push({
-              regNo: studentData.regNo,
-              error: error.message,
-              data: studentData
-            });
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing batch starting at index ${i}:`, error);
-        insertErrors.push({
-          batch: i,
-          error: error.message
-        });
+    // Prepare bulk operations
+    const bulkOps = uniqueStudents.map(student => ({
+      updateOne: {
+        filter: { regNo: student.regNo },
+        update: { $set: student },
+        upsert: true
       }
-    }
+    }));
 
-    console.log(`Successfully saved ${savedStudents.length} students`);
-    console.log(`Insert errors: ${insertErrors.length}`);
+    // Execute bulkWrite
+    const result = await Student.bulkWrite(bulkOps, { ordered: false });
 
-    // Fetch final student count by department for verification
+    const totalInserted = result.upsertedCount || 0;
+    const totalUpdated = result.modifiedCount || 0;
+
+    // Fetch latest students and stats
     const finalStudents = await Student.find({ isActive: { $ne: false } });
-    const deptDistribution = finalStudents.reduce((acc, student) => {
-      const dept = student.department || 'Unknown';
+    const deptDistribution = finalStudents.reduce((acc, s) => {
+      const dept = s.department || 'Unknown';
       acc[dept] = (acc[dept] || 0) + 1;
       return acc;
     }, {});
 
-    console.log('Final department distribution:', deptDistribution);
     console.log('=== BULK CREATE STUDENTS SUCCESS ===');
+    console.log(`Inserted: ${totalInserted}, Updated: ${totalUpdated}`);
+    console.log('Final department distribution:', deptDistribution);
 
     res.status(201).json({
-      message: 'Bulk student creation completed',
-      students: savedStudents,
+      message: 'Bulk upload completed',
       summary: {
         totalReceived: studentsData.length,
         validRecords: processedStudents.length,
         uniqueRecords: uniqueStudents.length,
-        savedStudents: savedStudents.length,
-        duplicatesSkipped: duplicates.length,
+        inserted: totalInserted,
+        updated: totalUpdated,
         processingErrors: errors.length,
-        insertErrors: insertErrors.length,
         finalTotalStudents: finalStudents.length,
         departmentDistribution: deptDistribution
       },
       errors: {
-        processing: errors,
-        insertion: insertErrors,
-        duplicates: duplicates.map(d => d.regNo)
+        processing: errors
       }
     });
-
   } catch (error) {
-    console.error('=== BULK CREATE STUDENTS ERROR ===');
-    console.error('Error in bulk student creation:', error);
-    res.status(500).json({ 
-      message: 'Error in bulk student creation',
-      error: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    console.error('=== BULK CREATE STUDENTS ERROR ===', error);
+    res.status(500).json({
+      message: 'Error during bulk student upload',
+      error: error.message
     });
   }
 };
+
 
 // Get students by department and semester
 export const getStudentsByDeptAndSem = async (req, res) => {

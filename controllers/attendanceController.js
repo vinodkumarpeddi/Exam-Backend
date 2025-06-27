@@ -14,7 +14,7 @@ export const getInvigilatorData = async (req, res) => {
       return res.status(400).json({ message: 'Faculty ID is required' });
     }
     
-    // Get current date and time if not provided
+
     const currentDate = date ? new Date(date) : new Date();
     const currentTime = time || (new Date().getHours() < 14 ? 'FN' : 'AN');
     
@@ -24,7 +24,7 @@ export const getInvigilatorData = async (req, res) => {
       time: currentTime
     });
     
-    // First, find all faculty allocations for this faculty
+
     const allFacultyAllocations = await FacultyAllocation.find({
       facultyId: facultyId
     })
@@ -33,14 +33,14 @@ export const getInvigilatorData = async (req, res) => {
     
     console.log('All faculty allocations found:', allFacultyAllocations.length);
     
-    // Filter allocations by date and time
+   
     const matchingAllocations = allFacultyAllocations.filter(allocation => {
       if (!allocation.exam) return false;
       
       const examDate = new Date(allocation.exam.date);
       const searchDate = new Date(currentDate);
       
-      // Compare dates (year, month, day)
+
       const examDateStr = examDate.toISOString().split('T')[0];
       const searchDateStr = searchDate.toISOString().split('T')[0];
       
@@ -58,7 +58,7 @@ export const getInvigilatorData = async (req, res) => {
     console.log('Matching allocations found:', matchingAllocations.length);
     
     if (matchingAllocations.length === 0) {
-      // Try to find any allocation for this faculty (for debugging)
+    
       console.log('No matching allocations. All allocations for faculty:', 
         allFacultyAllocations.map(a => ({
           subject: a.exam?.subject,
@@ -90,12 +90,12 @@ export const getInvigilatorData = async (req, res) => {
       });
     }
     
-    // Use the first matching allocation
+    
     const facultyAllocation = matchingAllocations[0];
     
     console.log('Using faculty allocation:', facultyAllocation);
     
-    // Get seat allocations for this room and exam
+    
     const seatAllocations = await SeatAllocation.find({
       exam: facultyAllocation.exam._id,
       room: facultyAllocation.room._id
@@ -107,7 +107,7 @@ export const getInvigilatorData = async (req, res) => {
     
     console.log(`Found ${seatAllocations.length} seat allocations`);
     
-    // Get existing attendance records
+    
     const attendanceRecords = await Attendance.find({
       exam: facultyAllocation.exam._id,
       room: facultyAllocation.room._id,
@@ -116,13 +116,11 @@ export const getInvigilatorData = async (req, res) => {
     
     console.log(`Found ${attendanceRecords.length} attendance records`);
     
-    // Create attendance map for quick lookup
     const attendanceMap = {};
     attendanceRecords.forEach(record => {
       attendanceMap[record.student.toString()] = record;
     });
     
-    // Combine seat allocations with attendance data
     const studentsWithAttendance = seatAllocations.map(allocation => ({
       _id: allocation._id,
       student: allocation.student,
@@ -175,13 +173,13 @@ export const markAttendance = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
     
-    // Get exam details for date and time
+  
     const exam = await ExamSchedule.findById(examId);
     if (!exam) {
       return res.status(404).json({ message: 'Exam not found' });
     }
     
-    // Update or create attendance record
+ 
     const attendanceData = {
       student: studentId,
       exam: examId,
@@ -227,17 +225,17 @@ export const reportMalpractice = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required' });
     }
     
-    // Get exam details
+   
     const exam = await ExamSchedule.findById(examId);
     if (!exam) {
       return res.status(404).json({ message: 'Exam not found' });
     }
     
-    // Find existing attendance record or create new one
+    
     let attendance = await Attendance.findOne({ student: studentId, exam: examId });
     
     if (!attendance) {
-      // Create new attendance record with malpractice
+
       attendance = new Attendance({
         student: studentId,
         exam: examId,
@@ -256,7 +254,7 @@ export const reportMalpractice = async (req, res) => {
         }
       });
     } else {
-      // Update existing record
+     
       attendance.malpractice = {
         reported: true,
         description: description,
@@ -321,20 +319,19 @@ export const getAttendanceReport = async (req, res) => {
   }
 };
 
-// Add a debug endpoint to check faculty allocations
+
 export const debugFacultyAllocations = async (req, res) => {
   try {
     const { facultyId } = req.params;
     
-    // Get all allocations for this faculty
     const allAllocations = await FacultyAllocation.find({ facultyId })
       .populate('exam')
       .populate('room');
     
-    // Get all exams
+    
     const allExams = await ExamSchedule.find({ isActive: { $ne: false } });
     
-    // Get all seat allocations
+
     const allSeatAllocations = await SeatAllocation.find()
       .populate('exam')
       .populate('room')
@@ -365,9 +362,9 @@ export const debugFacultyAllocations = async (req, res) => {
         } : null
       })),
       totalExams: allExams.length,
-      exams: allExams.slice(0, 10), // Limit to first 10 for debugging
+      exams: allExams.slice(0, 10), 
       totalSeatAllocations: allSeatAllocations.length,
-      seatAllocations: allSeatAllocations.slice(0, 10) // Limit to first 10 for debugging
+      seatAllocations: allSeatAllocations.slice(0, 10) 
     });
   } catch (error) {
     console.error('Error in debug endpoint:', error);

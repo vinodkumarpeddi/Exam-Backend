@@ -11,7 +11,7 @@ export const allocateSeats = async (req, res) => {
     console.log('=== SEAT ALLOCATION STARTED ===');
     console.log('Exam ID:', examId, '| Room Type:', roomType);
 
-    // Validate input
+    
     if (!examId || !roomType) {
       console.error('Validation failed: Missing examId or roomType');
       return res.status(400).json({ 
@@ -20,7 +20,7 @@ export const allocateSeats = async (req, res) => {
       });
     }
 
-    // Get exam details with enhanced error handling
+    
     const exam = await ExamSchedule.findById(examId).lean();
     if (!exam) {
       console.error('Exam not found with ID:', examId);
@@ -31,7 +31,7 @@ export const allocateSeats = async (req, res) => {
       });
     }
 
-    // Parse exam date with multiple format support
+   
     const parseExamDate = (dateString) => {
       if (!dateString) return null;
       
@@ -77,14 +77,13 @@ export const allocateSeats = async (req, res) => {
       time: exam.time
     });
 
-    // Build student query with flexible date matching
+    
     const studentQuery = {
       department: exam.department,
       semester: exam.semester,
       isActive: { $ne: false }
     };
 
-    // Subject matching logic
     if (exam.subjectCode) {
       studentQuery.subjectCode = exam.subjectCode;
     } else if (exam.subject) {
@@ -93,7 +92,6 @@ export const allocateSeats = async (req, res) => {
 
     console.log('Student query:', studentQuery);
 
-    // Get all potential students first
     const allStudents = await Student.find(studentQuery).sort({ regNo: 1 });
     console.log(`Found ${allStudents.length} potential students before date filtering`);
 

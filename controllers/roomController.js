@@ -1,6 +1,6 @@
 import Room from '../models/Room.js';
 
-// GET all active rooms
+
 export const getAllRooms = async (req, res) => {
   try {
     const rooms = await Room.find({ isActive: true }).sort({ room_no: 1 });
@@ -11,7 +11,7 @@ export const getAllRooms = async (req, res) => {
   }
 };
 
-// GET single room by ID
+
 export const getRoomById = async (req, res) => {
   try {
     const room = await Room.findById(req.params.id);
@@ -25,7 +25,7 @@ export const getRoomById = async (req, res) => {
   }
 };
 
-// CREATE new room
+
 export const createRoom = async (req, res) => {
   try {
     const room = new Room(req.body);
@@ -41,7 +41,7 @@ export const createRoom = async (req, res) => {
   }
 };
 
-// UPDATE room
+
 export const updateRoom = async (req, res) => {
   try {
     const room = await Room.findByIdAndUpdate(
@@ -59,7 +59,7 @@ export const updateRoom = async (req, res) => {
   }
 };
 
-// DELETE (soft delete) room
+
 export const deleteRoom = async (req, res) => {
   try {
     const room = await Room.findByIdAndUpdate(
@@ -77,7 +77,7 @@ export const deleteRoom = async (req, res) => {
   }
 };
 
-// BULK CREATE rooms
+
 export const bulkCreateRooms = async (req, res) => {
   try {
     const rooms = req.body;
@@ -89,7 +89,7 @@ export const bulkCreateRooms = async (req, res) => {
       const capacity = Number(r.capacity);
       const room_type = String(r.room_type || '').toLowerCase().trim();
 
-      // Basic validation
+      
       if (!room_no || isNaN(floor_no) || !block || isNaN(capacity) || !room_type) {
         throw new Error('Invalid room data in uploaded file');
       }
@@ -104,14 +104,13 @@ export const bulkCreateRooms = async (req, res) => {
       };
     });
 
-    // Check for existing rooms
+   
     const existingRoomNos = await Room.find({
       room_no: { $in: formattedRooms.map(r => r.room_no) }
     }).select('room_no');
 
     const existingRoomSet = new Set(existingRoomNos.map(r => r.room_no));
 
-    // Filter out duplicates
     const newRooms = formattedRooms.filter(r => !existingRoomSet.has(r.room_no));
 
     const savedRooms = await Room.insertMany(newRooms, { ordered: false });

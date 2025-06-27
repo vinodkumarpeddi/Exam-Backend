@@ -54,7 +54,7 @@ export const createFacultyAllocation = async (req, res) => {
       });
     }
 
-    // Check if faculty is already allocated for this exam (any room)
+   
     const existingAllocation = await FacultyAllocation.findOne({
       facultyId: facultyId,
       exam: exam
@@ -131,178 +131,6 @@ export const deleteFacultyAllocation = async (req, res) => {
   }
 };
 
-// export const bulkCreateFacultyAllocations = async (req, res) => {
-//   try {
-//     const allocations = req.body;
-//     console.log('Bulk creating allocations:', allocations);
-
-//     if (!Array.isArray(allocations)) {
-//       return res.status(400).json({ message: 'Input must be an array' });
-//     }
-
-//     if (allocations.length === 0) {
-//       return res.status(400).json({ message: 'No allocations provided' });
-//     }
-
-//     // Validate each allocation
-//     const invalidAllocations = allocations.filter(a =>
-//       !a.facultyName || !a.facultyId || !a.role || !a.exam || !a.room
-//     );
-
-//     if (invalidAllocations.length > 0) {
-//       return res.status(400).json({ 
-//         message: 'Each allocation must contain facultyName, facultyId, role, exam, and room',
-//         invalidCount: invalidAllocations.length
-//       });
-//     }
-
-//     const results = [];
-//     const errors = [];
-
-//     // Process allocations sequentially to handle duplicates properly
-//     for (const allocationData of allocations) {
-//       try {
-//         // Check for existing allocation for this faculty and exam
-//         const existing = await FacultyAllocation.findOne({
-//           facultyId: allocationData.facultyId,
-//           exam: allocationData.exam
-//         });
-
-//         if (existing) {
-//           errors.push({
-//             facultyName: allocationData.facultyName,
-//             facultyId: allocationData.facultyId,
-//             error: 'Already allocated for this exam'
-//           });
-//           continue;
-//         }
-
-//         const allocation = new FacultyAllocation({
-//           facultyName: allocationData.facultyName,
-//           facultyId: allocationData.facultyId,
-//           role: allocationData.role || 'invigilator',
-//           exam: allocationData.exam,
-//           room: allocationData.room,
-//           designation: allocationData.designation || 'faculty'
-//         });
-
-//         const saved = await allocation.save();
-        
-//         const populated = await FacultyAllocation.findById(saved._id)
-//           .populate('exam')
-//           .populate('room');
-          
-//         results.push(populated);
-//         console.log(`Successfully allocated ${allocationData.facultyName} to room`);
-//       } catch (error) {
-//         console.error(`Error creating allocation for ${allocationData.facultyName}:`, error);
-//         errors.push({
-//           facultyName: allocationData.facultyName,
-//           facultyId: allocationData.facultyId,
-//           error: error.message
-//         });
-//       }
-//     }
-
-//     console.log(`Bulk creation completed: ${results.length} success, ${errors.length} errors`);
-
-//     res.status(201).json({
-//       success: results,
-//       errors: errors,
-//       successCount: results.length,
-//       errorCount: errors.length,
-//       message: `Successfully created ${results.length} allocations${errors.length > 0 ? `, ${errors.length} failed` : ''}`
-//     });
-//   } catch (error) {
-//     console.error('Error in bulk create:', error);
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
-
-// export const bulkCreateFacultyAllocations = async (req, res) => {
-//   try {
-//     const allocations = req.body;
-//     console.log('Bulk creating allocations:', allocations);
-
-//     if (!Array.isArray(allocations) || allocations.length === 0) {
-//       return res.status(400).json({ message: 'Input must be a non-empty array' });
-//     }
-
-//     // Better validation: reject entries with missing or empty values
-//     const invalidAllocations = allocations.filter(a =>
-//       !a?.facultyName?.trim() ||
-//       !a?.facultyId?.trim() ||
-//       !a?.role?.trim() ||
-//       !a?.exam ||
-//       !a?.room
-//     );
-
-//     if (invalidAllocations.length > 0) {
-//       return res.status(400).json({
-//         message: 'Each allocation must contain facultyName, facultyId, role, exam, and room',
-//         invalidCount: invalidAllocations.length
-//       });
-//     }
-
-//     const results = [];
-//     const errors = [];
-
-//     for (const allocationData of allocations) {
-//       try {
-//         // Prevent duplicate faculty for the same exam
-//         const existing = await FacultyAllocation.findOne({
-//           facultyId: allocationData.facultyId,
-//           exam: allocationData.exam
-//         });
-
-//         if (existing) {
-//           errors.push({
-//             facultyName: allocationData.facultyName,
-//             facultyId: allocationData.facultyId,
-//             error: 'Already allocated for this exam'
-//           });
-//           continue;
-//         }
-
-//         const allocation = new FacultyAllocation({
-//           facultyName: allocationData.facultyName.trim(),
-//           facultyId: allocationData.facultyId.trim(),
-//           role: allocationData.role.trim(),
-//           exam: allocationData.exam,
-//           room: allocationData.room,
-//           designation: allocationData.designation?.trim() || 'faculty'
-//         });
-
-//         const saved = await allocation.save();
-//         const populated = await FacultyAllocation.findById(saved._id)
-//           .populate('exam')
-//           .populate('room');
-
-//         results.push(populated);
-//       } catch (error) {
-//         console.error(`Error creating allocation for ${allocationData.facultyName}:`, error);
-//         errors.push({
-//           facultyName: allocationData.facultyName,
-//           facultyId: allocationData.facultyId,
-//           error: error.message
-//         });
-//       }
-//     }
-
-//     res.status(201).json({
-//       success: results,
-//       errors: errors,
-//       successCount: results.length,
-//       errorCount: errors.length,
-//       message: `Created ${results.length} allocations${errors.length ? `, ${errors.length} failed` : ''}`
-//     });
-
-//   } catch (error) {
-//     console.error('Error in bulk create:', error);
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 
 export const bulkCreateFacultyAllocations = async (req, res) => {
   try {
@@ -426,7 +254,7 @@ export const notifyAllocatedFaculties = async (req, res) => {
       return res.status(400).json({ message: 'examId is required' });
     }
 
-    // If examId can be an array, handle it accordingly; here I assume single ID
+   
     const allocations = await FacultyAllocation.find({ exam: examId })
       .populate('exam')
       .populate('room');
@@ -440,13 +268,13 @@ export const notifyAllocatedFaculties = async (req, res) => {
 
     for (const alloc of allocations) {
       try {
-        // Check if email is present in allocation (you may need to add it)
+       
         if (!alloc.email) {
           errors.push({ facultyId: alloc.facultyId, error: 'Email not found' });
           continue;
         }
 
-        // Use consistent room field name, e.g. room_no or roomNumber
+      
         const roomNo = alloc.room?.room_no || 'N/A';
 
         const formattedDate = alloc.exam.date.toLocaleDateString();
