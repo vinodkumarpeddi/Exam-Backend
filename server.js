@@ -33,6 +33,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.post('/api/auth/test', (req, res) => {
+  res.json({ message: 'Test route works!' });
+});
 
 app.use('/api/rooms', roomRoutes);
 app.use('/api/exam-schedules', examScheduleRoutes);
